@@ -1,0 +1,7 @@
+[default]
+    [default.module_tba]
+    enable_module = false
+    api_key = "5M2LQFfRJ6rbQf0CklfTf3s4TsiTP7gVhRi448utjbCNFAxyJugdIiCvDDswhKRH"
+    update_rate_seconds = 30
+
+    event_key = "2017vapor"

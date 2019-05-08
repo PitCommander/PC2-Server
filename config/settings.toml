@@ -1,0 +1,8 @@
+[default]
+dynaconf_include = ["tba_settings.toml"]
+
+team_number = 401
+
+rethinkdb_address = "localhost"
+rethinkdb_port = 28015
+rethinkdb_database = "pc2"
