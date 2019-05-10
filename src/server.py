@@ -30,7 +30,6 @@ def setup():
 
 def init_table(name, db):
     try:
-        r.table_drop(name).run(db)
+        r.table_create(name).run(db)
     except r.ReqlOpFailedError:
         pass  # Ignore errors here, this just means the table already doesn't exist
-    r.table_create(name).run(db)  # Create the data table
