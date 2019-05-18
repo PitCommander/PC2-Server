@@ -3,6 +3,7 @@ from server import r
 from datetime import timedelta
 from dynaconf import settings
 from dataclasses import dataclass
+from enum import Enum
 from threading import Lock
 import tbapy
 
@@ -13,20 +14,21 @@ class CachedTeam:
     num_quals_matches: int
 
 
-event_cache = {}
-tba_settings = settings["module_tba"]
-scheduler, db = server.setup()
-update_lock = Lock()
-tba = tbapy.TBA(tba_settings.api_key)
-event_key = tba_settings.event_key
-
-
 def team_number_to_key(number):
     return "frc%i" % number
 
 
 def team_key_to_number(key):
     return int(key.strip("frc"))
+
+
+event_cache = {}
+tba_settings = settings["module_tba"]
+scheduler, db = server.setup()
+update_lock = Lock()
+tba = tbapy.TBA(tba_settings.api_key)
+user_team_key = team_number_to_key(settings["team_number"])
+event_key = tba_settings.event_key
 
 
 def populate_event_cache():
@@ -43,11 +45,12 @@ def populate_event_cache():
 
 
 def init_tables():
-    # Clean out the database
-    server.init_table("event_data", db)
+    # Create the database if it doesn't exist
+    server.init_table("eventData", db)
 
     # Populate the table with the rows
-    r.table("event_data").insert({"id": "rankings", "value": []}, conflict="replace").run(db)
+    r.table("eventData").insert({"id": "rankings", "value": []}, conflict="replace").run(db)
+    r.table("eventData").insert({"id": "schedule", "value": []}, conflict="replace").run(db)
 
 
 def update_rankings():
@@ -73,13 +76,52 @@ def update_rankings():
             "record": team_record
         }
         rank_list.append(data)
-    r.table("event_data").get("rankings").update({"value": rank_list}).run(db)
+    r.table("eventData").get("rankings").update({"value": rank_list}).run(db)
+
+
+def update_schedule():
+    event_matches = tba.team_matches(team=user_team_key, event=event_key, simple=True)
+    schedule = []
+    for match in event_matches:
+        match_number = match["match_number"]
+        match_scheduled_time = match["time"]
+        match_predicted_time = match["predicted_time"]
+        red_score = match["alliances"]["red"]["score"]
+        blue_score = match["alliances"]["blue"]["score"]
+        user_alliance = "red" if user_team_key in match["alliances"]["red"]["team_keys"] else "blue"
+        opponent_alliance = "red" if user_alliance == "blue" else "blue"
+        winning_alliance = match["winning_alliance"]
+        allies = list(match["alliances"][user_alliance]["team_keys"])
+        allies.remove(user_team_key)
+        opponents = list(match["alliances"][opponent_alliance]["team_keys"])
+        ally_1 = team_key_to_number(allies[0])
+        ally_2 = team_key_to_number(allies[1])
+        opponent_1 = team_key_to_number(opponents[0])
+        opponent_2 = team_key_to_number(opponents[1])
+        opponent_3 = team_key_to_number(opponents[2])
+        data = {
+            "matchNumber": match_number,
+            "ally1": ally_1,
+            "ally2": ally_2,
+            "oppo1": opponent_1,
+            "oppo2": opponent_2,
+            "oppo3": opponent_3,
+            "scheduledTime": match_scheduled_time,
+            "predictedTime": match_predicted_time,
+            "bumperColor": user_alliance,
+            "winner": winning_alliance,
+            "redScore": red_score,
+            "blueScore": blue_score
+        }
+        schedule.append(data)
+    r.table("eventData").get("schedule").update({"value": schedule}).run(db)
 
 
 @scheduler.job(interval=timedelta(seconds=tba_settings.matches_update_rate_seconds))
 def update_matches():
     update_lock.acquire()
     update_rankings()  # Update the rankings list
+    update_schedule()
     update_lock.release()
 
 
