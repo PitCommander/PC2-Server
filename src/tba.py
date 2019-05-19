@@ -84,6 +84,7 @@ def update_schedule():
     schedule = []
     for match in event_matches:
         match_number = match["match_number"]
+        match_type = match["comp_level"].upper()
         match_scheduled_time = match["time"]
         match_predicted_time = match["predicted_time"]
         red_score = match["alliances"]["red"]["score"]
@@ -101,6 +102,7 @@ def update_schedule():
         opponent_3 = team_key_to_number(opponents[2])
         data = {
             "matchNumber": match_number,
+            "matchType": match_type,
             "ally1": ally_1,
             "ally2": ally_2,
             "oppo1": opponent_1,
@@ -114,6 +116,7 @@ def update_schedule():
             "blueScore": blue_score
         }
         schedule.append(data)
+    schedule = sorted(schedule, key = lambda k: k["scheduledTime"])
     r.table("eventData").get("schedule").update({"value": schedule}).run(db)
 
 
