@@ -63,6 +63,7 @@ def update_rankings():
         team_matches_played = ranking["matches_played"]
         team_avg_rp = ranking["sort_orders"][0]
         team_record = ranking["record"]
+        team_record_string = " - ".join([str(team_record[field]) for field in ["wins", "losses", "ties"]])
         team_cached = event_cache[team_key]
         team_num_matches = team_cached.num_quals_matches
         team_matches_left = team_num_matches - team_matches_played
@@ -70,6 +71,7 @@ def update_rankings():
         data = {
             "teamNumber": team_number,
             "teamName": team_name,
+            "teamRecord": team_record_string,
             "rank": team_rank,
             "matchesLeft": team_matches_left,
             "rpAverage": team_avg_rp,
