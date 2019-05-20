@@ -68,9 +68,10 @@ def update_rankings():
         team_num_matches = team_cached.num_quals_matches
         team_matches_left = team_num_matches - team_matches_played
         team_name = team_cached.name
+        team_full_name = str(team_number) + ' - ' + team_name
         data = {
             "teamNumber": team_number,
-            "teamName": team_name,
+            "teamName": team_full_name,
             "teamRecord": team_record_string,
             "rank": team_rank,
             "matchesLeft": team_matches_left,
@@ -87,13 +88,14 @@ def update_schedule():
     for match in event_matches:
         match_number = match["match_number"]
         match_type = match["comp_level"].upper()
+        match_string = match_type + " " + str(match_number)
         match_scheduled_time = match["time"]
         match_predicted_time = match["predicted_time"]
         red_score = match["alliances"]["red"]["score"]
         blue_score = match["alliances"]["blue"]["score"]
         user_alliance = "red" if user_team_key in match["alliances"]["red"]["team_keys"] else "blue"
         opponent_alliance = "red" if user_alliance == "blue" else "blue"
-        winning_alliance = match["winning_alliance"]
+        match_outcome = "Win" if user_alliance == match["winning_alliance"] else "Loss" if opponent_alliance == match["winning_alliance"] else "Tie"
         allies = list(match["alliances"][user_alliance]["team_keys"])
         allies.remove(user_team_key)
         opponents = list(match["alliances"][opponent_alliance]["team_keys"])
@@ -105,6 +107,8 @@ def update_schedule():
         data = {
             "matchNumber": match_number,
             "matchType": match_type,
+            "matchString": match_string,
+            "matchOutcome": match_outcome,
             "ally1": ally_1,
             "ally2": ally_2,
             "oppo1": opponent_1,
@@ -113,7 +117,6 @@ def update_schedule():
             "scheduledTime": match_scheduled_time,
             "predictedTime": match_predicted_time,
             "bumperColor": user_alliance,
-            "winner": winning_alliance,
             "redScore": red_score,
             "blueScore": blue_score
         }
